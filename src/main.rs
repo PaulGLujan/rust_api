@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, postgres::PgPool};
-use std::{env, error::Error};
+use std::{env, error::Error, net::SocketAddr};
 use tokio;
 use uuid::Uuid;
 
@@ -22,7 +22,8 @@ pub struct CreateItem {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    dotenvy::dotenv()?;
+    dotenvy::dotenv().ok();
+
     let database_url =
         env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file or environment");
 
@@ -33,8 +34,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/items", post(create_item))
         .with_state(pool);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let port_str = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{}", port_str).parse()?;
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    println!("Listening on {}", listener.local_addr()?);
     axum::serve(listener, app).await.unwrap();
+
     Ok(())
 }
 

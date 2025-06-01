@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    musl-tools \
     && rm -rf /var/lib/apt/lists/* # Clean up apt cache to keep image small
 
 COPY Cargo.toml Cargo.lock ./

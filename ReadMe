@@ -22,3 +22,15 @@ curl -X POST -H "Content-Type: application/json" -d '{"name": "My First Item"}' 
 curl -X POST -H "Content-Type: application/json" -d '{"name": "Another Item"}' http://localhost:3000/items
 curl -X GET http://localhost:3000/items
 ```
+
+## Building and Running App in Docker
+
+```
+docker build -t rust_api:latest .
+docker run -p 3000:3000 -e DATABASE_URL="postgres://postgres:rust_password@host.docker.internal:5432/rust_db" rust_api:latest
+```
+
+Debugging
+```
+docker run -p 3000:3000 -e DATABASE_URL="postgres://postgres:rust_password@host.docker.internal:5432/rust_db" -e RUST_BACKTRACE=1 rust_api:latest
+```
