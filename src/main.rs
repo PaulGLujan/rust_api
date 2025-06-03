@@ -3,7 +3,10 @@ mod errors;
 mod handlers;
 mod models;
 
-use axum::{Router, routing::post};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use dotenvy::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::net::SocketAddr;
@@ -30,6 +33,10 @@ impl From<String> for JwtSecret {
 pub struct AppState {
     pub pool: PgPool,
     pub jwt_secret: JwtSecret,
+}
+
+async fn health_check() -> &'static str {
+    "OK"
 }
 
 #[tokio::main]
@@ -70,6 +77,7 @@ async fn main() {
 
     // Define the routes and attach handlers
     let app = Router::new()
+        .route("/health_check", get(health_check))
         // User routes
         .route("/register", post(register_user))
         .route("/login", post(login_user))
