@@ -38,3 +38,9 @@ docker run -p 3000:3000 -e DATABASE_URL="postgres://postgres:rust_password@host.
 ## Deployment Notes
 Deployed on Render.com
 - database will expire on July 1, 2025
+
+## Migrations
+To run migrations locally
+```
+DATABASE_URL="postgres://postgres:rust_password@localhost:5432/rust_db" sqlx migrate run
+```
