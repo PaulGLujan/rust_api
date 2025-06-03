@@ -23,12 +23,222 @@ A robust RESTful API built with Rust, Axum, and SQLx for managing users, propert
 * **PostgreSQL:** A powerful, open-source relational database.
 * **Docker & Docker Compose:** For containerization of the application and orchestration of multi-service environments (app + database).
 * **Cargo Chef:** For optimizing Docker build times by efficiently caching Rust dependencies.
+* **AWS Elastic Container Registry (ECR):** A fully-managed Docker container registry for storing application images.
+* **AWS Elastic Container Service (ECS) with Fargate:** A serverless container orchestration service for deploying and managing the application.
+* **AWS Relational Database Service (RDS):** A managed database service for PostgreSQL in the cloud.
+* **AWS Application Load Balancer (ALB):** For distributing incoming traffic to the ECS tasks.
 * **Bcrypt:** For secure password hashing and verification.
 * **jsonwebtoken:** For creating and verifying JWTs.
 * **Tokio:** The asynchronous runtime for Rust.
 * **dotenvy:** For managing environment variables.
 
-## ⚙️ Setup & Installation
+## ▶️ Testing the Application (for Demo)
+
+The API is accessible at `rust-api-alb-151556608.us-east-2.elb.amazonaws.com`.
+
+## 🧪 Testing the API
+
+You can test the API manually using tools like curl (command line) or Postman.
+
+### Manual Testing with curl
+
+Open a new terminal window and send requests to `rust-api-alb-151556608.us-east-2.elb.amazonaws.com`.
+
+### 1. Health Check
+
+Verifies the server is running.
+
+```
+curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/health_check
+```
+
+#### Expected Response: `OK` (HTTP Status 200 OK)
+
+### 2. User Registration
+
+Creates a new user account. Change demo_user and demo@example.com for subsequent attempts.
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "username": "demo_user",
+    "email": "demo@example.com",
+    "password": "SecurePassword123"
+}' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/register
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "id": "...",
+  "username": "demo_user",
+  "password_hash": "...",
+  "email": "demo@example.com",
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+#### Expected Response (Conflict - HTTP Status 409 Conflict if username/email taken):
+
+```
+{
+  "error": "Conflict: Username or email already taken."
+}
+```
+
+### 3. User Login
+
+Authenticates a user and retrieves a JWT. Copy this JWT token!
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "username": "demo_user",
+    "password": "SecurePassword123"
+}' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/login
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "user_id": "...",
+  "username": "demo_user",
+  "token": "eyJhbGciOiJIUzI1NiJ9..." # <-- THIS IS YOUR JWT TOKEN
+}
+```
+
+#### Expected Response (Unauthorized - HTTP Status 401 Unauthorized if credentials are wrong):
+
+```
+{
+  "error": "Unauthorized: Invalid username or password"
+}
+```
+
+### 4. Create Property
+
+(Note: As of current implementation, this endpoint does NOT require authentication. This will be added in future work.) The current_tenant_id must be a valid user id.
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "address": "123 Main St, New York, NY",
+    "unit_number": "4",
+    "current_rent_amount": "3000.00",
+    "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
+}' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/properties
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "id": "...",
+  "address": "123 Main St, New York, NY",
+  "unit_numbers": ["1A"],
+  "current_rent_amount": "3000.00",
+  "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+### 5. List Properties
+
+```
+curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/properties
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+[
+  {
+    "id": "...",
+    "address": "123 Main St, New York, NY",
+    "unit_numbers": ["1A"],
+    "current_rent_amount": "3000.00",
+    "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
+    "created_at": "...",
+    "updated_at": "..."
+  }
+  // ... other properties
+]
+```
+
+### 6. Create Payment
+
+(Note: This endpoint does NOT require authentication. This will be added in future work.)
+You'll need a user_id and property_id from previous steps.
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "user_id": "YOUR_USER_ID_FROM_REGISTRATION",
+    "property_id": "YOUR_PROPERTY_ID_FROM_PROPERTY_CREATION",
+    "amount": "1500.00",
+    "currency": "USD",
+    "notes": "Monthly rent",
+    "due_date": "2025-06-01",
+    "period_start": "2025-06-01",
+    "period_end": "2025-06-30"
+}' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "id": "...",
+  "user_id": "...",
+  "property_id": "...",
+  "amount": "1500.00",
+  "currency": "USD",
+  "status": "Pending",
+  "notes": "Monthly rent",
+  "transaction_id": null,
+  "due_date": "2025-06-01",
+  "period_start": "2025-06-01",
+  "period_end": "2025-06-30"
+}
+```
+
+### 7. List Payments
+
+You can list all payments, or filter by user_id or property_id.
+
+```
+# List all payments
+curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments
+
+# List payments for a specific user
+curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments?user_id=YOUR_USER_ID
+
+# List payments for a specific property
+curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments?property_id=YOUR_PROPERTY_ID
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+[
+  {
+    "id": "...",
+    "user_id": "...",
+    "property_id": "...",
+    "amount": "1500.00",
+    "currency": "USD",
+    "status": "Pending",
+    "notes": "Monthly rent",
+    "transaction_id": null,
+    "due_date": "2025-06-01",
+    "period_start": "2025-06-01",
+    "period_end": "2025-06-30"
+  },
+  // ... other payments
+]
+```
+
+## ⚙️ Local Setup & Installation
 
 Follow these steps to get the application running locally.
 
@@ -129,214 +339,6 @@ docker compose down
 
 - To remove the database data and start fresh, use `docker compose down -v`.
 
-## ▶️ Running the Application (for Demo)
-
-After running `docker compose up --build -d` (as described in step 3 of "Setup & Installation"), your application will be running.
-
-The API will be accessible at `http://localhost:3000`.
-
-## 🧪 Testing the API
-
-You can test the API manually using tools like curl (command line) or Postman.
-
-### Manual Testing with curl
-
-Open a new terminal window and send requests to `http://localhost:3000`.
-
-### 1. Health Check
-
-Verifies the server is running.
-
-```
-curl http://localhost:3000/health_check
-```
-
-#### Expected Response: `OK` (HTTP Status 200 OK)
-
-### 2. User Registration
-
-Creates a new user account. Change demo_user and demo@example.com for subsequent attempts.
-
-```
-curl -X POST -H "Content-Type: application/json" -d '{
-    "username": "demo_user",
-    "email": "demo@example.com",
-    "password": "SecurePassword123"
-}' http://localhost:3000/register
-```
-
-#### Expected Response (Success - HTTP Status 200 OK):
-
-```
-{
-  "id": "...",
-  "username": "demo_user",
-  "password_hash": "...",
-  "email": "demo@example.com",
-  "created_at": "...",
-  "updated_at": "..."
-}
-```
-
-#### Expected Response (Conflict - HTTP Status 409 Conflict if username/email taken):
-
-```
-{
-  "error": "Conflict: Username or email already taken."
-}
-```
-
-### 3. User Login
-
-Authenticates a user and retrieves a JWT. Copy this JWT token!
-
-```
-curl -X POST -H "Content-Type: application/json" -d '{
-    "username": "demo_user",
-    "password": "SecurePassword123"
-}' http://localhost:3000/login
-```
-
-#### Expected Response (Success - HTTP Status 200 OK):
-
-```
-{
-  "user_id": "...",
-  "username": "demo_user",
-  "token": "eyJhbGciOiJIUzI1NiJ9..." # <-- THIS IS YOUR JWT TOKEN
-}
-```
-
-#### Expected Response (Unauthorized - HTTP Status 401 Unauthorized if credentials are wrong):
-
-```
-{
-  "error": "Unauthorized: Invalid username or password"
-}
-```
-
-### 4. Create Property
-
-(Note: As of current implementation, this endpoint does NOT require authentication. This will be added in future work.) The current_tenant_id must be a valid user id.
-
-```
-curl -X POST -H "Content-Type: application/json" -d '{
-    "address": "123 Main St, New York, NY",
-    "unit_number": "4",
-    "current_rent_amount": "3000.00",
-    "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
-}' http://localhost:3000/properties
-```
-
-#### Expected Response (Success - HTTP Status 200 OK):
-
-```
-{
-  "id": "...",
-  "address": "123 Main St, New York, NY",
-  "unit_numbers": ["1A"],
-  "current_rent_amount": "3000.00",
-  "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
-  "created_at": "...",
-  "updated_at": "..."
-}
-```
-
-### 5. List Properties
-
-```
-curl http://localhost:3000/properties
-```
-
-#### Expected Response (Success - HTTP Status 200 OK):
-
-```
-[
-  {
-    "id": "...",
-    "address": "123 Main St, New York, NY",
-    "unit_numbers": ["1A"],
-    "current_rent_amount": "3000.00",
-    "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
-    "created_at": "...",
-    "updated_at": "..."
-  }
-  // ... other properties
-]
-```
-
-### 6. Create Payment
-
-(Note: This endpoint does NOT require authentication. This will be added in future work.)
-You'll need a user_id and property_id from previous steps.
-
-```
-curl -X POST -H "Content-Type: application/json" -d '{
-    "user_id": "YOUR_USER_ID_FROM_REGISTRATION",
-    "property_id": "YOUR_PROPERTY_ID_FROM_PROPERTY_CREATION",
-    "amount": "1500.00",
-    "currency": "USD",
-    "notes": "Monthly rent",
-    "due_date": "2025-06-01",
-    "period_start": "2025-06-01",
-    "period_end": "2025-06-30"
-}' http://localhost:3000/payments
-```
-
-#### Expected Response (Success - HTTP Status 200 OK):
-
-```
-{
-  "id": "...",
-  "user_id": "...",
-  "property_id": "...",
-  "amount": "1500.00",
-  "currency": "USD",
-  "status": "Pending",
-  "notes": "Monthly rent",
-  "transaction_id": null,
-  "due_date": "2025-06-01",
-  "period_start": "2025-06-01",
-  "period_end": "2025-06-30"
-}
-```
-
-### 7. List Payments
-
-You can list all payments, or filter by user_id or property_id.
-
-```
-# List all payments
-curl http://localhost:3000/payments
-
-# List payments for a specific user
-curl http://localhost:3000/payments?user_id=YOUR_USER_ID
-
-# List payments for a specific property
-curl http://localhost:3000/payments?property_id=YOUR_PROPERTY_ID
-```
-
-#### Expected Response (Success - HTTP Status 200 OK):
-
-```
-[
-  {
-    "id": "...",
-    "user_id": "...",
-    "property_id": "...",
-    "amount": "1500.00",
-    "currency": "USD",
-    "status": "Pending",
-    "notes": "Monthly rent",
-    "transaction_id": null,
-    "due_date": "2025-06-01",
-    "period_start": "2025-06-01",
-    "period_end": "2025-06-30"
-  },
-  // ... other payments
-]
-```
-
 ## 💡 Future Enhancements
 
 - Authentication Middleware: Implement JWT validation to secure create_property, create_payment, and potentially list_payments endpoints.
@@ -345,4 +347,4 @@ curl http://localhost:3000/payments?property_id=YOUR_PROPERTY_ID
 - Input Validation: More robust server-side validation for request bodies.
 - Pagination, Filtering, Sorting: Advanced querying capabilities for listing endpoints.
 - Error Handling Refinements: More specific error messages and HTTP status codes for various scenarios.
-- Deployment: Containerization (Docker), CI/CD pipeline, and deployment to a cloud platform.
+- Deployment: CI/CD pipeline
