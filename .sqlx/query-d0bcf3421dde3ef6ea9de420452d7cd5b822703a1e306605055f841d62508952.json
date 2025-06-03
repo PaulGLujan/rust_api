@@ -1,0 +1,129 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO payments (\n            user_id, property_id, amount, currency, status,\n            notes, transaction_id, due_date, period_start, period_end\n        )\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n        RETURNING\n            id, user_id, property_id, amount, currency, status as \"status!: PaymentStatus\",\n            notes, transaction_id, due_date, period_start, period_end, created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "property_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "status!: PaymentStatus",
+        "type_info": {
+          "Custom": {
+            "name": "payment_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "completed",
+                "failed",
+                "overdue",
+                "partially_paid"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "transaction_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "due_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "period_start",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 10,
+        "name": "period_end",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Text",
+        {
+          "Custom": {
+            "name": "payment_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "completed",
+                "failed",
+                "overdue",
+                "partially_paid"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "d0bcf3421dde3ef6ea9de420452d7cd5b822703a1e306605055f841d62508952"
+}

@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, address, unit_number, current_rent_amount, current_tenant_id, created_at, updated_at\n        FROM properties\n        ORDER BY address, unit_number\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "unit_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "current_rent_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "current_tenant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "b57c407d96620d53d6e086f353429c2cf1c0095c859174cd18a133ffcdef889f"
+}
