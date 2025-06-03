@@ -19,10 +19,6 @@ use crate::models::user::{AuthResponse, LoginUser, RegisterUser, User};
 
 use crate::db;
 
-// --- JWT Configuration (PLACEHOLDER - Will be read from environment in main.rs) ---
-const JWT_SECRET: &[u8] = b"your_super_secret_jwt_key_please_change_me_in_production";
-
-
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     sub: Uuid, // Subject (user ID)

@@ -1,62 +1,92 @@
+mod errors;
+mod handlers;
+mod models;
+
 use axum::{
-    Json, Router,
-    extract::State,
+    Extension, // For future JWT middleware
+    Router,
     routing::{get, post},
 };
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, postgres::PgPool};
-use std::{env, error::Error, net::SocketAddr};
-use tokio;
-use uuid::Uuid;
+use dotenvy::dotenv;
+use sqlx::postgres::PgPoolOptions;
+use std::net::SocketAddr;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt}; // For logging
 
-#[derive(Serialize, Deserialize, Clone, FromRow)]
-pub struct Item {
-    id: Uuid,
-    name: String,
-}
+use tokio::net::TcpListener;
 
-#[derive(Deserialize)]
-pub struct CreateItem {
-    name: String,
+// Import your custom error type
+use crate::errors::AppError;
+
+// Import all your handler functions
+// Thanks to src/handlers/mod.rs, you can import them all directly.
+use crate::handlers::{
+    payment::{create_payment, list_payments},
+    property::{create_property, list_properties},
+    user::{login_user, register_user},
+};
+
+#[derive(Debug, Clone)]
+pub struct JwtSecret(String);
+
+impl From<String> for JwtSecret {
+    fn from(secret: String) -> Self {
+        JwtSecret(secret)
+    }
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    dotenvy::dotenv().ok();
+async fn main() {
+    // Initialize Tracing for Logging (Optional but Recommended)
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "rust_api=debug,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
-    let database_url =
-        env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file or environment");
+    // Load environment variables from .env file (for local development)
+    dotenv().ok();
 
-    let pool = PgPool::connect(&database_url).await?;
+    // Get DATABASE_URL and JWT_SECRET from environment variables
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("FATAL: DATABASE_URL must be set in .env or environment");
+    let jwt_secret_string =
+        std::env::var("JWT_SECRET").expect("FATAL: JWT_SECRET must be set in .env or environment");
 
-    let app = Router::new()
-        .route("/items", get(get_items))
-        .route("/items", post(create_item))
-        .with_state(pool);
-
-    let port_str = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr: SocketAddr = format!("0.0.0.0:{}", port_str).parse()?;
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    println!("Listening on {}", listener.local_addr()?);
-    axum::serve(listener, app).await.unwrap();
-
-    Ok(())
-}
-
-async fn get_items(State(pool): State<PgPool>) -> Json<Vec<Item>> {
-    let items = sqlx::query_as::<_, Item>("select id, name from items")
-        .fetch_all(&pool)
+    // Create database connection pool
+    let pool = PgPoolOptions::new()
+        .max_connections(5) // Limit max connections for performance
+        .connect(&database_url)
         .await
-        .expect("Failed to fetch items from database");
-    Json(items)
-}
+        .expect("FATAL: Failed to connect to Postgres database.");
 
-async fn create_item(State(pool): State<PgPool>, Json(new_item): Json<CreateItem>) -> Json<Item> {
-    let new_item =
-        sqlx::query_as::<_, Item>("insert into items (name) values ($1) returning id, name")
-            .bind(&new_item.name)
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to insert item into database");
-    Json(new_item)
+    // Initialize the JwtSecret struct to be passed in Axum State
+    let jwt_secret = JwtSecret(jwt_secret_string);
+
+    // Define the routes and attach handlers
+    let app = Router::new()
+        // User routes
+        .route("/register", post(register_user))
+        .route("/login", post(login_user))
+        // Property routes
+        .route("/properties", post(create_property).get(list_properties))
+        // Payment routes
+        .route("/payments", post(create_payment).get(list_payments))
+        // Note: For now, these routes are open. We'll add authentication middleware later.
+        // Add the database pool and JWT secret to the application state
+        .with_state(pool)
+        .with_state(jwt_secret); // Pass the JwtSecret struct
+
+    // Define the address to listen on
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    tracing::debug!("listening on {}", addr);
+
+    // Start the server
+    let listener = TcpListener::bind(&addr)
+        .await
+        .expect("FATAL: Failed to bind address");
+    axum::serve(listener, app) // Use axum::serve
+        .await
+        .expect("FATAL: Server failed to start");
 }
