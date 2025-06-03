@@ -2,7 +2,7 @@
 
 A robust RESTful API built with Rust, Axum, and SQLx for managing users, properties, and payments. This project demonstrates modern Rust backend development practices, including database interactions with PostgreSQL, secure password hashing, and JWT-based authentication (foundational pieces are implemented).
 
-## ✨ Features
+<!-- ## ✨ Features
 
 * **User Management:**
     * Register new user accounts.
@@ -345,4 +345,4 @@ curl http://localhost:3000/payments?property_id=YOUR_PROPERTY_ID
 - Input Validation: More robust server-side validation for request bodies.
 - Pagination, Filtering, Sorting: Advanced querying capabilities for listing endpoints.
 - Error Handling Refinements: More specific error messages and HTTP status codes for various scenarios.
-- Deployment: Containerization (Docker), CI/CD pipeline, and deployment to a cloud platform.
+- Deployment: Containerization (Docker), CI/CD pipeline, and deployment to a cloud platform. -->
