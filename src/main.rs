@@ -1,28 +1,20 @@
+mod db;
 mod errors;
 mod handlers;
 mod models;
 
-use axum::{
-    Extension, // For future JWT middleware
-    Router,
-    routing::{get, post},
-};
+use axum::{Router, routing::post};
 use dotenvy::dotenv;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt}; // For logging
 
 use tokio::net::TcpListener;
 
-// Import your custom error type
-use crate::errors::AppError;
-
 // Import all your handler functions
 // Thanks to src/handlers/mod.rs, you can import them all directly.
 use crate::handlers::{
-    payment::{create_payment, list_payments},
-    property::{create_property, list_properties},
-    user::{login_user, register_user},
+    create_payment, create_property, list_payments, list_properties, login_user, register_user,
 };
 
 #[derive(Debug, Clone)]
@@ -32,6 +24,12 @@ impl From<String> for JwtSecret {
     fn from(secret: String) -> Self {
         JwtSecret(secret)
     }
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: PgPool,
+    pub jwt_secret: JwtSecret,
 }
 
 #[tokio::main]
@@ -64,6 +62,12 @@ async fn main() {
     // Initialize the JwtSecret struct to be passed in Axum State
     let jwt_secret = JwtSecret(jwt_secret_string);
 
+    // Create the combined application state
+    let app_state = AppState {
+        pool: pool,
+        jwt_secret,
+    };
+
     // Define the routes and attach handlers
     let app = Router::new()
         // User routes
@@ -75,8 +79,7 @@ async fn main() {
         .route("/payments", post(create_payment).get(list_payments))
         // Note: For now, these routes are open. We'll add authentication middleware later.
         // Add the database pool and JWT secret to the application state
-        .with_state(pool)
-        .with_state(jwt_secret); // Pass the JwtSecret struct
+        .with_state(app_state);
 
     // Define the address to listen on
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

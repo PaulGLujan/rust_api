@@ -1,6 +1,7 @@
-use chrono::{DateTime, Utc};
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, types::Decimal}; // Use sqlx::types::Decimal for DECIMAL
+use sqlx::FromRow;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 // --- Property Model (Database Representation) ---
@@ -9,10 +10,10 @@ pub struct Property {
     pub id: Uuid,
     pub address: String,
     pub unit_number: Option<String>,
-    pub current_rent_amount: Decimal,
+    pub current_rent_amount: BigDecimal,
     pub current_tenant_id: Option<Uuid>, // Foreign key to the users table
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 // --- Property DTOs ---
@@ -22,6 +23,6 @@ pub struct Property {
 pub struct CreateProperty {
     pub address: String,
     pub unit_number: Option<String>,
-    pub current_rent_amount: Decimal,
+    pub current_rent_amount: BigDecimal,
     pub current_tenant_id: Option<Uuid>,
 }

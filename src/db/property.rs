@@ -1,8 +1,6 @@
 use crate::errors::AppError;
 use crate::models::{CreateProperty, Property};
-use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 /// Creates a new property in the database.
 pub async fn create_property(

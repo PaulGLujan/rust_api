@@ -2,9 +2,7 @@
 
 use crate::errors::AppError;
 use crate::models::{CreatePayment, Payment, PaymentStatus};
-use chrono::{DateTime, Utc};
-use sqlx::{Executor, PgPool};
-use time::Date;
+use sqlx::{PgPool, Postgres};
 use uuid::Uuid;
 
 /// Creates a new payment record.
@@ -50,7 +48,7 @@ pub async fn list_payments(
     user_id: Option<Uuid>,
     property_id: Option<Uuid>,
 ) -> Result<Vec<Payment>, AppError> {
-    let mut query = r#"
+    let mut query_str = r#"
         SELECT
             id, user_id, property_id, amount, currency, status as "status!: PaymentStatus",
             notes, transaction_id, due_date, period_start, period_end, created_at, updated_at
@@ -59,33 +57,35 @@ pub async fn list_payments(
     .to_string();
 
     let mut conditions = Vec::new();
-    let mut params: Vec<Box<dyn sqlx::Encode + Send + Sync>> = Vec::new();
     let mut param_idx = 1;
 
-    if let Some(uid) = user_id {
+    if user_id.is_some() {
         conditions.push(format!("user_id = ${}", param_idx));
-        params.push(Box::new(uid));
         param_idx += 1;
     }
-    if let Some(pid) = property_id {
+
+    if property_id.is_some() {
         conditions.push(format!("property_id = ${}", param_idx));
-        params.push(Box::new(pid));
-        param_idx += 1;
     }
 
     if !conditions.is_empty() {
-        query.push_str(" WHERE ");
-        query.push_str(&conditions.join(" AND "));
+        query_str.push_str(" WHERE ");
+        query_str.push_str(&conditions.join(" AND "));
     }
 
-    query.push_str(" ORDER BY created_at DESC");
+    query_str.push_str(" ORDER BY created_at DESC");
 
-    let mut q = sqlx::query_as(&query);
-    for param in params {
-        q = q.bind(param);
+    let mut query = sqlx::query_as::<Postgres, Payment>(&query_str);
+
+    if let Some(uid) = user_id {
+        query = query.bind(uid); // Bind the actual Uuid value
     }
 
-    let payments = q
+    if let Some(pid) = property_id {
+        query = query.bind(pid); // Bind the actual Uuid value
+    }
+
+    let payments = query
         .fetch_all(pool)
         .await
         .map_err(|e| AppError::InternalServerError(format!("Failed to list payments: {}", e)))?;

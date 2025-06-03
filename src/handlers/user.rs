@@ -1,9 +1,4 @@
-use axum::{
-    extract::{Json, State},
-    http::StatusCode,       // Needed if you explicitly return StatusCodes
-    response::IntoResponse, // Needed if you return AppError which implements this
-};
-use sqlx::PgPool;
+use axum::extract::{Json, State};
 use uuid::Uuid;
 
 // For password hashing
@@ -11,12 +6,13 @@ use bcrypt::{hash, verify};
 
 // For JWT
 use chrono::{Duration, Utc};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::{Deserialize, Serialize};
 
 use crate::errors::AppError;
 use crate::models::user::{AuthResponse, LoginUser, RegisterUser, User};
 
+use crate::AppState;
 use crate::db;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,7 +24,7 @@ struct Claims {
 
 /// Handles user registration.
 pub async fn register_user(
-    State(pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Json(new_user): Json<RegisterUser>,
 ) -> Result<Json<User>, AppError> {
     // Hash the password
@@ -36,18 +32,18 @@ pub async fn register_user(
         .map_err(|e| AppError::InternalServerError(format!("Failed to hash password: {}", e)))?;
 
     // Create user in DB
-    let user = db::create_user(&pool, new_user, hashed_password).await?;
+    let user = db::create_user(&app_state.pool, new_user, hashed_password).await?;
 
     Ok(Json(user))
 }
 
 /// Handles user login and JWT generation.
 pub async fn login_user(
-    State(pool): State<PgPool>,
+    State(app_state): State<AppState>,
     Json(login_data): Json<LoginUser>,
 ) -> Result<Json<AuthResponse>, AppError> {
     // Find user by username
-    let user = db::find_user_by_username(&pool, &login_data.username)
+    let user = db::find_user_by_username(&app_state.pool, &login_data.username)
         .await?
         .ok_or_else(|| AppError::Unauthorized("Invalid username or password".into()))?;
 
@@ -79,13 +75,13 @@ pub async fn login_user(
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(JWT_SECRET),
+        &EncodingKey::from_secret(&app_state.jwt_secret.0.as_bytes()),
     )
     .map_err(|e| AppError::InternalServerError(format!("Failed to generate JWT: {}", e)))?;
 
     Ok(Json(AuthResponse {
         user_id: user.id,
-        username: user.username, 
+        username: user.username,
         token,
     }))
 }

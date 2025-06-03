@@ -1,12 +1,11 @@
-// src/models/payment.rs
-use chrono::{DateTime, Utc};
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Type, types::Decimal}; // Use sqlx::types::Decimal for DECIMAL
-use time::Date;
+use sqlx::FromRow;
+use time::{Date, OffsetDateTime};
 use uuid::Uuid;
 
 // --- Payment ENUM (Database Representation) ---
-#[derive(Debug, FromRow, Serialize, Deserialize, Clone, Type)]
+#[derive(Clone, Debug, PartialEq, sqlx::Type, Deserialize, Serialize)]
 #[sqlx(type_name = "payment_status", rename_all = "lowercase")]
 pub enum PaymentStatus {
     Pending,
@@ -22,7 +21,7 @@ pub struct Payment {
     pub id: Uuid,
     pub user_id: Uuid,
     pub property_id: Option<Uuid>,
-    pub amount: Decimal,
+    pub amount: BigDecimal,
     pub currency: String,
     pub status: PaymentStatus,
     pub notes: Option<String>,
@@ -30,8 +29,8 @@ pub struct Payment {
     pub due_date: Option<Date>,
     pub period_start: Option<Date>,
     pub period_end: Option<Date>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 // --- Payment DTOs ---
@@ -41,7 +40,7 @@ pub struct Payment {
 pub struct CreatePayment {
     pub user_id: Uuid,
     pub property_id: Uuid,
-    pub amount: Decimal,
+    pub amount: BigDecimal,
     pub currency: String,
     pub notes: Option<String>,
     pub due_date: Option<Date>,
@@ -55,7 +54,7 @@ pub struct PaymentResponse {
     pub id: Uuid,
     pub user_id: Uuid,
     pub property_id: Option<Uuid>,
-    pub amount: Decimal,
+    pub amount: BigDecimal,
     pub currency: String,
     pub status: PaymentStatus,
     pub notes: Option<String>,

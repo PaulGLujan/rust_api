@@ -10,11 +10,11 @@ use serde_json::json;
 #[derive(Debug)]
 pub enum AppError {
     InternalServerError(String), // For unhandled server errors, with a message
-    NotFound(String),            // For resources not found (e.g., user, property)
+    // NotFound(String),            // For resources not found (e.g., user, property)
     Conflict(String),            // For resource conflicts (e.g., username already taken)
     Unauthorized(String),        // For authentication failures
-    BadRequest(String),          // For invalid request data
-    Forbidden(String),           // For authorization failures (e.g., not allowed to access resource)
+    // BadRequest(String),          // For invalid request data
+    // Forbidden(String),           // For authorization failures (e.g., not allowed to access resource)
 }
 
 // --- Implement `IntoResponse` for `AppError` ---
@@ -23,11 +23,11 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
             AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
-            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            // AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
-            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
-            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
+            // AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            // AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
         };
 
         // Construct a JSON response body

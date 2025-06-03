@@ -1,8 +1,6 @@
 use crate::errors::AppError;
 use crate::models::{RegisterUser, User};
-use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 /// Creates a new user in the database.
 pub async fn create_user(
