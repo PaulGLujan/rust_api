@@ -1,2 +1,6 @@
 /target
 .env
+
+# Docker specific generated files
+# This is the persistent volume for your PostgreSQL database data created by Docker Compose.
+db_data/

@@ -1,0 +1,41 @@
+services:
+  # --- PostgreSQL Database Service ---
+  db:
+    image: postgres:16-alpine # Using a lightweight, recent PostgreSQL image
+    restart: always # Always restart if the container stops
+    environment:
+      # These environment variables configure the PostgreSQL container
+      # They will be read from your local .env file (defined above)
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # This creates a persistent volume for your database data.
+      # Data will be stored in a local directory named 'db_data' and won't be lost if the container is removed.
+      - ./db_data:/var/lib/postgresql/data
+    ports:
+      # Maps host port 5432 to container port 5432.
+      # This allows you to connect to the database from your host machine (e.g., with pgAdmin or DBeaver).
+      - "5432:5432"
+
+  # --- Rust API Application Service ---
+  app:
+    build: . # Tells Docker Compose to build the image from the Dockerfile in the current directory
+    restart: always
+    ports:
+      # Maps host port 3000 to container port 3000, so you can access your API.
+      - "3000:3000"
+    environment:
+      # These environment variables are passed to your Rust application container.
+      # Crucially, DATABASE_URL now uses the 'db' service name as the host!
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      # Ensures the 'db' service starts before the 'app' service.
+      - db
+    # If you have custom health checks in your app, you could add them here
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:3000/health_check"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3

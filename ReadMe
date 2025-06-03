@@ -21,10 +21,12 @@ A robust RESTful API built with Rust, Axum, and SQLx for managing users, propert
 * **Axum:** A fast, ergonomic, and modular web framework built on Tokio and Tower.
 * **SQLx:** An asynchronous, compile-time checked ORM for Rust, interacting with PostgreSQL.
 * **PostgreSQL:** A powerful, open-source relational database.
+* **Docker & Docker Compose:** For containerization of the application and orchestration of multi-service environments (app + database).
+* **Cargo Chef:** For optimizing Docker build times by efficiently caching Rust dependencies.
 * **Bcrypt:** For secure password hashing and verification.
 * **jsonwebtoken:** For creating and verifying JWTs.
 * **Tokio:** The asynchronous runtime for Rust.
-* **`dotenvy`:** For managing environment variables.
+* **dotenvy:** For managing environment variables.
 
 ## ⚙️ Setup & Installation
 
@@ -48,53 +50,90 @@ cd rust_api
 
 ### 2. Environment Variables
 
-Create a `.env` file in the root of your project (next to `Cargo.toml`) and populate it with your database credentials and a JWT secret.
+Create a .env file in the root of your project (next to Cargo.toml and docker-compose.yml) and populate it with your database credentials and a JWT secret. Docker Compose will automatically pick up variables from this file.
 
 ```
 # .env
 
-DATABASE_URL=postgres://<your_db_user>:<your_db_password>@localhost:5432/<your_dev_db_name>
-JWT_SECRET=a_very_secure_secret_for_your_jwt_tokens_in_dev
+# PostgreSQL credentials for the Dockerized DB
+POSTGRES_USER=myuser
+POSTGRES_PASSWORD=mypassword
+POSTGRES_DB=dev_db
+
+# JWT Secret for your Rust app
+JWT_SECRET=a_super_secure_jwt_key_for_docker_compose_env
 ```
 
-Remember to replace `<your_db_user>`, `<your_db_password>`, `<your_dev_db_name>`, and `<your_test_db_name>` with your actual credentials.
+Remember to replace myuser, mypassword, dev_db, and a_super_secure_jwt_key_for_docker_compose_env with your desired values.
 
-### 3. Database Setup
+### 3. Docker Compose Setup & Run
 
-You need to create two databases in your PostgreSQL instance: one for development and one for testing.
+Your PostgreSQL database will be automatically set up and run in a Docker container alongside your Rust API using Docker Compose.
+
+The docker-compose.yml file:
+
+- Defines a db service (PostgreSQL).
+- Defines an app service (your Rust API), building its image from the Dockerfile and linking to the db service.
+- Configures a persistent volume (./db_data) for your database files, so your data persists even if containers are recreated.
+
+To build the Docker images and start both services:
 
 ```
-# Connect to psql as a user with create database privileges
-psql -U <your_db_user>
-
-# Inside psql, create the databases:
-CREATE DATABASE <your_db_name>;
-\q # To exit psql
+docker compose up --build -d
 ```
+
+- --build: Ensures your Rust application image is built (or rebuilt if changes are detected in your Dockerfile or Rust source).
+- -d: Runs the containers in "detached" mode (in the background).
 
 ### 4. Run Database Migrations
 
-Apply the database schema migrations to both your development and test databases.
+Once the db service is up, you need to apply your database schema migrations. You will use your locally installed sqlx-cli to connect to the Dockerized database.
+
+First, set the DATABASE_URL environment variable in your current terminal session to point to your Dockerized database:
 
 ```
-DATABASE_URL=<data_base_url_from_step_2> sqlx migrate run
+export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
 ```
 
-### 5. Build the Project
+**Important:** Replace ${POSTGRES_USER}, ${POSTGRES_PASSWORD}, and ${POSTGRES_DB} with the actual values from your project's .env file. (e.g., postgres://myuser:mypassword@localhost:5432/dev_db)
+
+Then, run the migrations:
 
 ```
-cargo build
+cargo sqlx migrate run
 ```
+
+### 5. Verify Services Are Running (Optional)
+
+You can check the status of your running services:
+
+```
+docker compose ps
+```
+
+And view logs from your application:
+
+```
+docker compose logs app
+```
+
+(Press `Ctrl+C` to exit logs.)
+
+### 6. Stop Services
+
+When you're done, you can stop and remove the containers:
+
+```
+docker compose down
+```
+
+- To remove the database data and start fresh, use `docker compose down -v`.
 
 ## ▶️ Running the Application (for Demo)
 
-To start the API server for a live demo or manual testing:
+After running `docker compose up --build -d` (as described in step 3 of "Setup & Installation"), your application will be running.
 
-```
-cargo run
-```
-
-The API will be accessible at `http://127.0.0.1:3000`.
+The API will be accessible at `http://localhost:3000`.
 
 ## 🧪 Testing the API
 
@@ -102,14 +141,14 @@ You can test the API manually using tools like curl (command line) or Postman.
 
 ### Manual Testing with curl
 
-Open a new terminal window and send requests to `http://127.0.0.1:3000`.
+Open a new terminal window and send requests to `http://localhost:3000`.
 
 ### 1. Health Check
 
 Verifies the server is running.
 
 ```
-curl http://127.0.0.1:3000/health_check
+curl http://localhost:3000/health_check
 ```
 
 #### Expected Response: `OK` (HTTP Status 200 OK)
@@ -123,7 +162,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
     "username": "demo_user",
     "email": "demo@example.com",
     "password": "SecurePassword123"
-}' http://127.0.0.1:3000/register
+}' http://localhost:3000/register
 ```
 
 #### Expected Response (Success - HTTP Status 200 OK):
@@ -155,7 +194,7 @@ Authenticates a user and retrieves a JWT. Copy this JWT token!
 curl -X POST -H "Content-Type: application/json" -d '{
     "username": "demo_user",
     "password": "SecurePassword123"
-}' http://127.0.0.1:3000/login
+}' http://localhost:3000/login
 ```
 
 #### Expected Response (Success - HTTP Status 200 OK):
@@ -186,7 +225,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
     "unit_number": "4",
     "current_rent_amount": "3000.00",
     "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
-}' http://127.0.0.1:3000/properties
+}' http://localhost:3000/properties
 ```
 
 #### Expected Response (Success - HTTP Status 200 OK):
@@ -206,7 +245,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 ### 5. List Properties
 
 ```
-curl http://127.0.0.1:3000/properties
+curl http://localhost:3000/properties
 ```
 
 #### Expected Response (Success - HTTP Status 200 OK):
@@ -241,7 +280,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
     "due_date": "2025-06-01",
     "period_start": "2025-06-01",
     "period_end": "2025-06-30"
-}' http://127.0.0.1:3000/payments
+}' http://localhost:3000/payments
 ```
 
 #### Expected Response (Success - HTTP Status 200 OK):
@@ -268,13 +307,13 @@ You can list all payments, or filter by user_id or property_id.
 
 ```
 # List all payments
-curl http://127.0.0.1:3000/payments
+curl http://localhost:3000/payments
 
 # List payments for a specific user
-curl http://127.0.0.1:3000/payments?user_id=YOUR_USER_ID
+curl http://localhost:3000/payments?user_id=YOUR_USER_ID
 
 # List payments for a specific property
-curl http://127.0.0.1:3000/payments?property_id=YOUR_PROPERTY_ID
+curl http://localhost:3000/payments?property_id=YOUR_PROPERTY_ID
 ```
 
 #### Expected Response (Success - HTTP Status 200 OK):
