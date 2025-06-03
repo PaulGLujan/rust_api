@@ -1,0 +1,309 @@
+# Rust Property & Payment API
+
+A robust RESTful API built with Rust, Axum, and SQLx for managing users, properties, and payments. This project demonstrates modern Rust backend development practices, including database interactions with PostgreSQL, secure password hashing, and JWT-based authentication (foundational pieces are implemented).
+
+## ✨ Features
+
+* **User Management:**
+    * Register new user accounts.
+    * Login users and issue JSON Web Tokens (JWTs).
+* **Property Management:**
+    * Create new property listings.
+    * Retrieve all available properties.
+* **Payment Management:**
+    * Record new payment transactions.
+    * List payments, with optional filtering by user or property.
+* **Health Check:** A simple endpoint to verify API operational status.
+
+## 🚀 Technologies Used
+
+* **Rust:** A safe, concurrent, and performant language.
+* **Axum:** A fast, ergonomic, and modular web framework built on Tokio and Tower.
+* **SQLx:** An asynchronous, compile-time checked ORM for Rust, interacting with PostgreSQL.
+* **PostgreSQL:** A powerful, open-source relational database.
+* **Bcrypt:** For secure password hashing and verification.
+* **jsonwebtoken:** For creating and verifying JWTs.
+* **Tokio:** The asynchronous runtime for Rust.
+* **`dotenvy`:** For managing environment variables.
+
+## ⚙️ Setup & Installation
+
+Follow these steps to get the application running locally.
+
+### Prerequisites
+
+* **Rust & Cargo:** Install Rust and Cargo using `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+* **PostgreSQL:** Ensure you have a PostgreSQL server installed and running.
+* **`sqlx-cli`:** The command-line tool for `sqlx` migrations:
+    ```bash
+    cargo install sqlx-cli --no-default-features --features postgres
+    ```
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/PaulGLujan/rust_api.git
+cd rust_api
+```
+
+### 2. Environment Variables
+
+Create a `.env` file in the root of your project (next to `Cargo.toml`) and populate it with your database credentials and a JWT secret.
+
+```
+# .env
+
+DATABASE_URL=postgres://<your_db_user>:<your_db_password>@localhost:5432/<your_dev_db_name>
+JWT_SECRET=a_very_secure_secret_for_your_jwt_tokens_in_dev
+```
+
+Remember to replace `<your_db_user>`, `<your_db_password>`, `<your_dev_db_name>`, and `<your_test_db_name>` with your actual credentials.
+
+### 3. Database Setup
+
+You need to create two databases in your PostgreSQL instance: one for development and one for testing.
+
+```
+# Connect to psql as a user with create database privileges
+psql -U <your_db_user>
+
+# Inside psql, create the databases:
+CREATE DATABASE <your_db_name>;
+\q # To exit psql
+```
+
+### 4. Run Database Migrations
+
+Apply the database schema migrations to both your development and test databases.
+
+```
+DATABASE_URL=<data_base_url_from_step_2> sqlx migrate run
+```
+
+### 5. Build the Project
+
+```
+cargo build
+```
+
+## ▶️ Running the Application (for Demo)
+
+To start the API server for a live demo or manual testing:
+
+```
+cargo run
+```
+
+The API will be accessible at `http://127.0.0.1:3000`.
+
+## 🧪 Testing the API
+
+You can test the API manually using tools like curl (command line) or Postman.
+
+### Manual Testing with curl
+
+Open a new terminal window and send requests to `http://127.0.0.1:3000`.
+
+### 1. Health Check
+
+Verifies the server is running.
+
+```
+curl http://127.0.0.1:3000/health_check
+```
+
+#### Expected Response: `OK` (HTTP Status 200 OK)
+
+### 2. User Registration
+
+Creates a new user account. Change demo_user and demo@example.com for subsequent attempts.
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "username": "demo_user",
+    "email": "demo@example.com",
+    "password": "SecurePassword123"
+}' http://127.0.0.1:3000/register
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "id": "...",
+  "username": "demo_user",
+  "password_hash": "...",
+  "email": "demo@example.com",
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+#### Expected Response (Conflict - HTTP Status 409 Conflict if username/email taken):
+
+```
+{
+  "error": "Conflict: Username or email already taken."
+}
+```
+
+### 3. User Login
+
+Authenticates a user and retrieves a JWT. Copy this JWT token!
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "username": "demo_user",
+    "password": "SecurePassword123"
+}' http://127.0.0.1:3000/login
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "user_id": "...",
+  "username": "demo_user",
+  "token": "eyJhbGciOiJIUzI1NiJ9..." # <-- THIS IS YOUR JWT TOKEN
+}
+```
+
+#### Expected Response (Unauthorized - HTTP Status 401 Unauthorized if credentials are wrong):
+
+```
+{
+  "error": "Unauthorized: Invalid username or password"
+}
+```
+
+### 4. Create Property
+
+(Note: As of current implementation, this endpoint does NOT require authentication. This will be added in future work.) The current_tenant_id must be a valid user id.
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "address": "123 Main St, New York, NY",
+    "unit_number": "4",
+    "current_rent_amount": "3000.00",
+    "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
+}' http://127.0.0.1:3000/properties
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "id": "...",
+  "address": "123 Main St, New York, NY",
+  "unit_numbers": ["1A"],
+  "current_rent_amount": "3000.00",
+  "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+### 5. List Properties
+
+```
+curl http://127.0.0.1:3000/properties
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+[
+  {
+    "id": "...",
+    "address": "123 Main St, New York, NY",
+    "unit_numbers": ["1A"],
+    "current_rent_amount": "3000.00",
+    "current_tenant_id": "109b2942-4696-4dda-88f3-aa47962d4baa"
+    "created_at": "...",
+    "updated_at": "..."
+  }
+  // ... other properties
+]
+```
+
+### 6. Create Payment
+
+(Note: This endpoint does NOT require authentication. This will be added in future work.)
+You'll need a user_id and property_id from previous steps.
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{
+    "user_id": "YOUR_USER_ID_FROM_REGISTRATION",
+    "property_id": "YOUR_PROPERTY_ID_FROM_PROPERTY_CREATION",
+    "amount": "1500.00",
+    "currency": "USD",
+    "notes": "Monthly rent",
+    "due_date": "2025-06-01",
+    "period_start": "2025-06-01",
+    "period_end": "2025-06-30"
+}' http://127.0.0.1:3000/payments
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+{
+  "id": "...",
+  "user_id": "...",
+  "property_id": "...",
+  "amount": "1500.00",
+  "currency": "USD",
+  "status": "Pending",
+  "notes": "Monthly rent",
+  "transaction_id": null,
+  "due_date": "2025-06-01",
+  "period_start": "2025-06-01",
+  "period_end": "2025-06-30"
+}
+```
+
+### 7. List Payments
+
+You can list all payments, or filter by user_id or property_id.
+
+```
+# List all payments
+curl http://127.0.0.1:3000/payments
+
+# List payments for a specific user
+curl http://127.0.0.1:3000/payments?user_id=YOUR_USER_ID
+
+# List payments for a specific property
+curl http://127.0.0.1:3000/payments?property_id=YOUR_PROPERTY_ID
+```
+
+#### Expected Response (Success - HTTP Status 200 OK):
+
+```
+[
+  {
+    "id": "...",
+    "user_id": "...",
+    "property_id": "...",
+    "amount": "1500.00",
+    "currency": "USD",
+    "status": "Pending",
+    "notes": "Monthly rent",
+    "transaction_id": null,
+    "due_date": "2025-06-01",
+    "period_start": "2025-06-01",
+    "period_end": "2025-06-30"
+  },
+  // ... other payments
+]
+```
+
+## 💡 Future Enhancements
+
+- Authentication Middleware: Implement JWT validation to secure create_property, create_payment, and potentially list_payments endpoints.
+- Authorization: Role-based access control (e.g., only authenticated users can create payments, or only admins can create properties).
+- Full CRUD: Add GET by ID, PUT/PATCH (update), and DELETE functionality for properties and payments.
+- Input Validation: More robust server-side validation for request bodies.
+- Pagination, Filtering, Sorting: Advanced querying capabilities for listing endpoints.
+- Error Handling Refinements: More specific error messages and HTTP status codes for various scenarios.
+- Deployment: Containerization (Docker), CI/CD pipeline, and deployment to a cloud platform.
