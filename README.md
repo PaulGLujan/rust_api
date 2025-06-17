@@ -1,6 +1,6 @@
 # Rust Property & Payment API
 
-A robust RESTful API built with Rust, Axum, and SQLx for managing users, properties, and payments. This project demonstrates modern Rust backend development practices, including database interactions with PostgreSQL, secure password hashing, and JWT-based authentication (foundational pieces are implemented).
+A robust and secure RESTful API built with Rust, Axum, and SQLx, designed for managing users, properties, and payments. This project serves as a practical demonstration of modern backend development principles using Rust, including asynchronous database interactions with PostgreSQL, secure password hashing, and a foundation for JWT-based authentication. It's envisioned as the core backend for a property management or real estate application.
 
 ## ✨ Features
 
@@ -8,7 +8,7 @@ A robust RESTful API built with Rust, Axum, and SQLx for managing users, propert
     * Register new user accounts.
     * Login users and issue JSON Web Tokens (JWTs).
 * **Property Management:**
-    * Create new property listings.
+    * Create new property listings with associated details.
     * Retrieve all available properties.
 * **Payment Management:**
     * Record new payment transactions.
@@ -27,22 +27,32 @@ A robust RESTful API built with Rust, Axum, and SQLx for managing users, propert
 * **AWS Elastic Container Service (ECS) with Fargate:** A serverless container orchestration service for deploying and managing the application.
 * **AWS Relational Database Service (RDS):** A managed database service for PostgreSQL in the cloud.
 * **AWS Application Load Balancer (ALB):** For distributing incoming traffic to the ECS tasks.
+* **AWS Virtual Private Cloud (VPC):** Provides a logically isolated section of the AWS Cloud where AWS resources are launched.
+* **AWS CloudWatch:** For monitoring, logging, and observing the application's performance and health.
 * **Bcrypt:** For secure password hashing and verification.
 * **jsonwebtoken:** For creating and verifying JWTs.
 * **Tokio:** The asynchronous runtime for Rust.
 * **dotenvy:** For managing environment variables.
 
-## ▶️ Testing the Application (for Demo)
+## ☁️ Cloud Deployment (AWS)
 
-The API is accessible at `rust-api-alb-151556608.us-east-2.elb.amazonaws.com`.
+This project has been successfully deployed to AWS. The public endpoint below was active during the demo and testing phase.
+
+**Important Note:** To avoid ongoing charges, the AWS resources related to this deployment (ALB, ECS cluster, RDS instance, etc.) may have been deleted. If the endpoint does not work, it is likely due to resource deprovisioning.
+
+### Demo Endpoint (Example)
+
+`https://rust-api-alb-151556608.us-east-2.elb.amazonaws.com`
+
+Note: This URL is specific to a particular deployment instance and AWS Region (`us-east-2`). Your own deployment will have a different URL.
 
 ## 🧪 Testing the API
 
-You can test the API manually using tools like curl (command line) or Postman.
+You can test the API manually using command-line tools like `curl` or graphical clients like Postman. All examples below assume the API is accessible at `rust-api-alb-151556608.us-east-2.elb.amazonaws.com` (replace with your local or deployed endpoint as appropriate).
 
-### Manual Testing with curl
+### Manual Testing with `curl`
 
-Open a new terminal window and send requests to `rust-api-alb-151556608.us-east-2.elb.amazonaws.com`.
+Open a new terminal window and send requests to your API endpoint.
 
 ### 1. Health Check
 
@@ -52,11 +62,11 @@ Verifies the server is running.
 curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/health_check
 ```
 
-#### Expected Response: `OK` (HTTP Status 200 OK)
+#### Expected Response: `OK` (HTTP Status `200 OK`)
 
 ### 2. User Registration
 
-Creates a new user account. Change demo_user and demo@example.com for subsequent attempts.
+Creates a new user account. Change `demo_user` and `demo@example.com` for subsequent attempts.
 
 ```
 curl -X POST -H "Content-Type: application/json" -d '{
@@ -66,7 +76,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/register
 ```
 
-#### Expected Response (Success - HTTP Status 200 OK):
+#### Expected Response (Success - HTTP Status `200 OK`):
 
 ```
 {
@@ -79,7 +89,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }
 ```
 
-#### Expected Response (Conflict - HTTP Status 409 Conflict if username/email taken):
+#### Expected Response (Conflict - HTTP Status `409 Conflict` if username/email taken):
 
 ```
 {
@@ -98,7 +108,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/login
 ```
 
-#### Expected Response (Success - HTTP Status 200 OK):
+#### Expected Response (Success - HTTP Status `200 OK`):
 
 ```
 {
@@ -108,7 +118,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }
 ```
 
-#### Expected Response (Unauthorized - HTTP Status 401 Unauthorized if credentials are wrong):
+#### Expected Response (Unauthorized - HTTP Status `401 Unauthorized` if credentials are wrong):
 
 ```
 {
@@ -118,7 +128,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 
 ### 4. Create Property
 
-(Note: As of current implementation, this endpoint does NOT require authentication. This will be added in future work.) The current_tenant_id must be a valid user id.
+(Note: As of current implementation, this endpoint does NOT require authentication. This will be added in future work.) The `current_tenant_id` must be a valid user id.
 
 ```
 curl -X POST -H "Content-Type: application/json" -d '{
@@ -129,7 +139,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/properties
 ```
 
-#### Expected Response (Success - HTTP Status 200 OK):
+#### Expected Response (Success - HTTP Status `200 OK`):
 
 ```
 {
@@ -149,7 +159,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/properties
 ```
 
-#### Expected Response (Success - HTTP Status 200 OK):
+#### Expected Response (Success - HTTP Status `200 OK`):
 
 ```
 [
@@ -184,7 +194,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments
 ```
 
-#### Expected Response (Success - HTTP Status 200 OK):
+#### Expected Response (Success - HTTP Status `200 OK`):
 
 ```
 {
@@ -204,7 +214,7 @@ curl -X POST -H "Content-Type: application/json" -d '{
 
 ### 7. List Payments
 
-You can list all payments, or filter by user_id or property_id.
+You can list all payments, or filter by `user_id` or `property_id`.
 
 ```
 # List all payments
@@ -217,7 +227,7 @@ curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments?user_id=YOUR_US
 curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments?property_id=YOUR_PROPERTY_ID
 ```
 
-#### Expected Response (Success - HTTP Status 200 OK):
+#### Expected Response (Success - HTTP Status `200 OK`):
 
 ```
 [
@@ -305,7 +315,7 @@ First, set the DATABASE_URL environment variable in your current terminal sessio
 export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
 ```
 
-**Important:** Replace ${POSTGRES_USER}, ${POSTGRES_PASSWORD}, and ${POSTGRES_DB} with the actual values from your project's .env file. (e.g., postgres://myuser:mypassword@localhost:5432/dev_db)
+**Important:** Replace** ${POSTGRES_USER}, ${POSTGRES_PASSWORD}, and ${POSTGRES_DB} with the actual values from your project's .env file. (e.g., postgres://myuser:mypassword@localhost:5432/dev_db)
 
 Then, run the migrations:
 
