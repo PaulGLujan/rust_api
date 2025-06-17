@@ -2,6 +2,14 @@
 
 A robust and secure RESTful API built with Rust, Axum, and SQLx, designed for managing users, properties, and payments. This project serves as a practical demonstration of modern backend development principles using Rust, including asynchronous database interactions with PostgreSQL, secure password hashing, and a foundation for JWT-based authentication. It's envisioned as the core backend for a property management or real estate application.
 
+## Table of Contents
+* [Features](#-features)
+* [Technologies Used](#-technologies-used)
+* [Local Setup & Installation](#user-content-️-local-setup--installation)
+* [Testing the API](#-testing-the-api)
+* [Future Enhancements](#-future-enhancements)
+
+id="user-content-️-local-setup--installation"
 ## ✨ Features
 
 * **User Management:**
@@ -40,11 +48,107 @@ This project has been successfully deployed to AWS. The public endpoint below wa
 
 **Important Note:** To avoid ongoing charges, the AWS resources related to this deployment (ALB, ECS cluster, RDS instance, etc.) may have been deleted. If the endpoint does not work, it is likely due to resource deprovisioning.
 
-### Demo Endpoint (Example)
+## ⚙️ Local Setup & Installation
 
-`https://rust-api-alb-151556608.us-east-2.elb.amazonaws.com`
+Follow these steps to get the application running locally.
 
-Note: This URL is specific to a particular deployment instance and AWS Region (`us-east-2`). Your own deployment will have a different URL.
+### Prerequisites
+
+* **Rust & Cargo:** Install Rust and Cargo using `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+* **PostgreSQL:** Ensure you have a PostgreSQL server installed and running.
+* **`sqlx-cli`:** The command-line tool for `sqlx` migrations:
+
+```bash
+cargo install sqlx-cli --no-default-features --features postgres
+```
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/PaulGLujan/rust_api.git
+cd rust_api
+```
+
+### 2. Environment Variables
+
+Create a .env file in the root of your project (next to Cargo.toml and docker-compose.yml) and populate it with your database credentials and a JWT secret. Docker Compose will automatically pick up variables from this file.
+
+```
+# .env
+
+# PostgreSQL credentials for the Dockerized DB
+POSTGRES_USER=myuser
+POSTGRES_PASSWORD=mypassword
+POSTGRES_DB=dev_db
+
+# JWT Secret for your Rust app
+JWT_SECRET=a_super_secure_jwt_key_for_docker_compose_env
+```
+
+Remember to replace myuser, mypassword, dev_db, and a_super_secure_jwt_key_for_docker_compose_env with your desired values.
+
+### 3. Docker Compose Setup & Run
+
+Your PostgreSQL database will be automatically set up and run in a Docker container alongside your Rust API using Docker Compose.
+
+The docker-compose.yml file:
+
+- Defines a db service (PostgreSQL).
+- Defines an app service (your Rust API), building its image from the Dockerfile and linking to the db service.
+- Configures a persistent volume (./db_data) for your database files, so your data persists even if containers are recreated.
+
+To build the Docker images and start both services:
+
+```
+docker compose up --build -d
+```
+
+- --build: Ensures your Rust application image is built (or rebuilt if changes are detected in your Dockerfile or Rust source).
+- -d: Runs the containers in "detached" mode (in the background).
+
+### 4. Run Database Migrations
+
+Once the db service is up, you need to apply your database schema migrations. You will use your locally installed sqlx-cli to connect to the Dockerized database.
+
+First, set the DATABASE_URL environment variable in your current terminal session to point to your Dockerized database:
+
+```
+export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
+```
+
+**Important:** Replace** ${POSTGRES_USER}, ${POSTGRES_PASSWORD}, and ${POSTGRES_DB} with the actual values from your project's .env file. (e.g., postgres://myuser:mypassword@localhost:5432/dev_db)
+
+Then, run the migrations:
+
+```
+cargo sqlx migrate run
+```
+
+### 5. Verify Services Are Running (Optional)
+
+You can check the status of your running services:
+
+```
+docker compose ps
+```
+
+And view logs from your application:
+
+```
+docker compose logs app
+```
+
+(Press `Ctrl+C` to exit logs.)
+
+### 6. Stop Services
+
+When you're done, you can stop and remove the containers:
+
+```
+docker compose down
+```
+
+- To remove the database data and start fresh, use `docker compose down -v`.
 
 ## 🧪 Testing the API
 
@@ -247,107 +351,6 @@ curl rust-api-alb-151556608.us-east-2.elb.amazonaws.com/payments?property_id=YOU
   // ... other payments
 ]
 ```
-
-## ⚙️ Local Setup & Installation
-
-Follow these steps to get the application running locally.
-
-### Prerequisites
-
-* **Rust & Cargo:** Install Rust and Cargo using `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-* **PostgreSQL:** Ensure you have a PostgreSQL server installed and running.
-* **`sqlx-cli`:** The command-line tool for `sqlx` migrations:
-    ```bash
-    cargo install sqlx-cli --no-default-features --features postgres
-    ```
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/PaulGLujan/rust_api.git
-cd rust_api
-```
-
-### 2. Environment Variables
-
-Create a .env file in the root of your project (next to Cargo.toml and docker-compose.yml) and populate it with your database credentials and a JWT secret. Docker Compose will automatically pick up variables from this file.
-
-```
-# .env
-
-# PostgreSQL credentials for the Dockerized DB
-POSTGRES_USER=myuser
-POSTGRES_PASSWORD=mypassword
-POSTGRES_DB=dev_db
-
-# JWT Secret for your Rust app
-JWT_SECRET=a_super_secure_jwt_key_for_docker_compose_env
-```
-
-Remember to replace myuser, mypassword, dev_db, and a_super_secure_jwt_key_for_docker_compose_env with your desired values.
-
-### 3. Docker Compose Setup & Run
-
-Your PostgreSQL database will be automatically set up and run in a Docker container alongside your Rust API using Docker Compose.
-
-The docker-compose.yml file:
-
-- Defines a db service (PostgreSQL).
-- Defines an app service (your Rust API), building its image from the Dockerfile and linking to the db service.
-- Configures a persistent volume (./db_data) for your database files, so your data persists even if containers are recreated.
-
-To build the Docker images and start both services:
-
-```
-docker compose up --build -d
-```
-
-- --build: Ensures your Rust application image is built (or rebuilt if changes are detected in your Dockerfile or Rust source).
-- -d: Runs the containers in "detached" mode (in the background).
-
-### 4. Run Database Migrations
-
-Once the db service is up, you need to apply your database schema migrations. You will use your locally installed sqlx-cli to connect to the Dockerized database.
-
-First, set the DATABASE_URL environment variable in your current terminal session to point to your Dockerized database:
-
-```
-export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
-```
-
-**Important:** Replace** ${POSTGRES_USER}, ${POSTGRES_PASSWORD}, and ${POSTGRES_DB} with the actual values from your project's .env file. (e.g., postgres://myuser:mypassword@localhost:5432/dev_db)
-
-Then, run the migrations:
-
-```
-cargo sqlx migrate run
-```
-
-### 5. Verify Services Are Running (Optional)
-
-You can check the status of your running services:
-
-```
-docker compose ps
-```
-
-And view logs from your application:
-
-```
-docker compose logs app
-```
-
-(Press `Ctrl+C` to exit logs.)
-
-### 6. Stop Services
-
-When you're done, you can stop and remove the containers:
-
-```
-docker compose down
-```
-
-- To remove the database data and start fresh, use `docker compose down -v`.
 
 ## 💡 Future Enhancements
 
